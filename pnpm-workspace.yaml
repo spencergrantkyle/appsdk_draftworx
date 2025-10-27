@@ -1,2 +1,3 @@
 packages:
   - pizzaz_server_node
+  - draftworx_app/services/mcp

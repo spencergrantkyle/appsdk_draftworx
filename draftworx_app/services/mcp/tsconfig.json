@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "moduleResolution": "nodenext",
+    "module": "nodenext",
+    "target": "es2022",
+    "baseUrl": ".",
+    "paths": {
+      "@modelcontextprotocol/sdk": [
+        "../../pizzaz_server_node/node_modules/@modelcontextprotocol/sdk/dist/index.d.ts"
+      ],
+      "@modelcontextprotocol/sdk/*": [
+        "../../pizzaz_server_node/node_modules/@modelcontextprotocol/sdk/dist/*"
+      ],
+      "@modelcontextprotocol/sdk/dist/server/index.js": [
+        "../../pizzaz_server_node/node_modules/@modelcontextprotocol/sdk/dist/server/index.d.ts"
+      ],
+      "@modelcontextprotocol/sdk/dist/server/sse.js": [
+        "../../pizzaz_server_node/node_modules/@modelcontextprotocol/sdk/dist/server/sse.d.ts"
+      ],
+      "@modelcontextprotocol/sdk/dist/types.js": [
+        "../../pizzaz_server_node/node_modules/@modelcontextprotocol/sdk/dist/types.d.ts"
+      ]
+    },
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": false
+  },
+  "include": ["./**/*.ts", "./**/*.d.ts"],
+  "exclude": ["dist"]
+}

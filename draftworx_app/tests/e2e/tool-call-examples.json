@@ -1,0 +1,48 @@
+{
+  "collect_context": {
+    "input": {
+      "entityType": "Private Company",
+      "jurisdiction": "South Africa",
+      "yearEnd": "2024-02-29",
+      "framework": "IFRS for SMEs"
+    },
+    "expected": {
+      "missingFields": []
+    }
+  },
+  "create_client": {
+    "input": {
+      "entityType": "Private Company",
+      "jurisdiction": "South Africa",
+      "yearEnd": "2024-02-29",
+      "framework": "IFRS for SMEs"
+    }
+  },
+  "upload_trial_balance": {
+    "input": {
+      "clientId": "cl_12345",
+      "fileId": "file_6789",
+      "fileType": "xlsx"
+    }
+  },
+  "map_accounts": {
+    "input": {
+      "tbId": "tb_12345",
+      "confidenceThreshold": 0.8
+    }
+  },
+  "recommend_template": {
+    "input": {
+      "jurisdiction": "South Africa",
+      "entityType": "Private Company",
+      "framework": "IFRS for SMEs"
+    }
+  },
+  "create_draft": {
+    "input": {
+      "clientId": "cl_12345",
+      "tbId": "tb_12345",
+      "templateId": "template_za_ifrs_smes"
+    }
+  }
+}

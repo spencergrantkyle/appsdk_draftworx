@@ -1,0 +1,239 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Draftworx Financial Draft Assistant",
+  "name_for_model": "draftworx_financial_draft_assistant",
+  "description_for_human": "Prepare first-draft financial statements in Draftworx with guided context capture, secure trial balance upload, and automated mapping.",
+  "description_for_model": "Coordinate the sequential Draftworx onboarding flow. Collect reporting context, create the Draftworx client, upload and map the trial balance, recommend a reporting template, and produce a draft ready to open in Draftworx Cloud.",
+  "capabilities": {
+    "file_upload": {
+      "accepted_mime_types": [
+        "text/csv",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/zip"
+      ],
+      "max_file_size_mb": 25
+    },
+    "tools": [
+      {
+        "name": "draftworx.collect_context",
+        "description": "Gather jurisdiction, entity type, year-end, and reporting framework for a new Draftworx client.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "entityType": { "type": "string" },
+            "jurisdiction": { "type": "string" },
+            "yearEnd": { "type": "string", "format": "date" },
+            "framework": { "type": "string" }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "toolRunId": { "type": "string" },
+            "summary": { "type": "string" },
+            "missingFields": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["toolRunId", "summary", "missingFields"],
+          "additionalProperties": false
+        },
+        "ui": {
+          "display_name": "Collect Reporting Context",
+          "output_template": "ui://draftworx/context-collector.html"
+        }
+      },
+      {
+        "name": "draftworx.create_client",
+        "description": "Confirm and register a Draftworx client using the captured context.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "entityType": { "type": "string" },
+            "jurisdiction": { "type": "string" },
+            "yearEnd": { "type": "string", "format": "date" },
+            "framework": { "type": "string" }
+          },
+          "required": ["entityType", "jurisdiction", "yearEnd", "framework"],
+          "additionalProperties": false
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "toolRunId": { "type": "string" },
+            "status": { "type": "string" },
+            "clientId": { "type": "string" },
+            "summary": { "type": "string" }
+          },
+          "required": ["toolRunId", "status", "clientId", "summary"],
+          "additionalProperties": false
+        },
+        "ui": {
+          "display_name": "Confirm Draftworx Client",
+          "output_template": "ui://draftworx/client-confirmation.html"
+        }
+      },
+      {
+        "name": "draftworx.upload_trial_balance",
+        "description": "Upload a trial balance file for the selected Draftworx client.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "clientId": { "type": "string" },
+            "fileId": { "type": "string" },
+            "fileType": { "type": "string", "enum": ["csv", "xlsx", "zip"] }
+          },
+          "required": ["clientId", "fileId", "fileType"],
+          "additionalProperties": false
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "toolRunId": { "type": "string" },
+            "status": { "type": "string" },
+            "uploadSummary": { "type": "string" },
+            "detectedAccounts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "account": { "type": "string" },
+                  "balance": { "type": "number" }
+                },
+                "required": ["account", "balance"],
+                "additionalProperties": false
+              }
+            },
+            "versionTag": { "type": "string" }
+          },
+          "required": ["toolRunId", "status", "uploadSummary", "detectedAccounts", "versionTag"],
+          "additionalProperties": false
+        },
+        "ui": {
+          "display_name": "Upload Trial Balance",
+          "output_template": "ui://draftworx/tb-uploader.html"
+        }
+      },
+      {
+        "name": "draftworx.map_accounts",
+        "description": "Auto-map trial balance accounts and highlight low-confidence mappings for review.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "tbId": { "type": "string" },
+            "confidenceThreshold": { "type": "number", "minimum": 0, "maximum": 1 }
+          },
+          "required": ["tbId", "confidenceThreshold"],
+          "additionalProperties": false
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "toolRunId": { "type": "string" },
+            "status": { "type": "string" },
+            "confirmedMappings": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "source": { "type": "string" },
+                  "target": { "type": "string" },
+                  "confidence": { "type": "number" }
+                },
+                "required": ["source", "target", "confidence"],
+                "additionalProperties": false
+              }
+            },
+            "unresolvedAccounts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "account": { "type": "string" },
+                  "suggestedTarget": { "type": "string" },
+                  "confidence": { "type": "number" }
+                },
+                "required": ["account", "confidence"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["toolRunId", "status", "confirmedMappings", "unresolvedAccounts"],
+          "additionalProperties": false
+        },
+        "ui": {
+          "display_name": "Review Account Mapping",
+          "output_template": "ui://draftworx/mapping-review.html"
+        }
+      },
+      {
+        "name": "draftworx.recommend_template",
+        "description": "Recommend the best financial statement template based on jurisdiction, entity type, and framework.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "jurisdiction": { "type": "string" },
+            "entityType": { "type": "string" },
+            "framework": { "type": "string" }
+          },
+          "required": ["jurisdiction", "entityType", "framework"],
+          "additionalProperties": false
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "toolRunId": { "type": "string" },
+            "status": { "type": "string" },
+            "templateId": { "type": "string" },
+            "confidence": { "type": "number" },
+            "rationale": { "type": "string" }
+          },
+          "required": ["toolRunId", "status", "templateId", "confidence", "rationale"],
+          "additionalProperties": false
+        },
+        "ui": {
+          "display_name": "Select Reporting Template",
+          "output_template": "ui://draftworx/template-selector.html"
+        }
+      },
+      {
+        "name": "draftworx.create_draft",
+        "description": "Generate a draft set of financial statements ready to open in Draftworx Cloud.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "clientId": { "type": "string" },
+            "tbId": { "type": "string" },
+            "templateId": { "type": "string" }
+          },
+          "required": ["clientId", "tbId", "templateId"],
+          "additionalProperties": false
+        },
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "toolRunId": { "type": "string" },
+            "status": { "type": "string" },
+            "draftUrl": { "type": "string", "format": "uri" },
+            "summary": { "type": "string" }
+          },
+          "required": ["toolRunId", "status", "draftUrl", "summary"],
+          "additionalProperties": false
+        },
+        "ui": {
+          "display_name": "Draft Summary",
+          "output_template": "ui://draftworx/draft-summary.html"
+        }
+      }
+    ]
+  },
+  "endpoints": {
+    "mcp": {
+      "transport": "sse",
+      "url": "https://draftworx.example.com/mcp"
+    }
+  }
+}
