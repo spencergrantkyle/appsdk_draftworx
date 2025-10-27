@@ -4,10 +4,10 @@ nixPkgs = ["python312", "nodejs-18_x", "pnpm"]
 [phases.install]
 cmds = [
   "pnpm install --no-frozen-lockfile",
-  "pip install --upgrade pip",
-  "pip install -r pizzaz_server_python/requirements.txt",
-  "pip install -r solar-system_server_python/requirements.txt",
-  "pip install python-dotenv"
+  "python -m pip install --upgrade pip",
+  "python -m pip install -r pizzaz_server_python/requirements.txt",
+  "python -m pip install -r solar-system_server_python/requirements.txt",
+  "python -m pip install python-dotenv"
 ]
 
 [phases.build]
