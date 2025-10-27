@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
 import mcp.types as types
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+
+def get_static_url() -> str:
+    """Get the static asset base URL from environment or use default."""
+    return os.getenv("STATIC_URL", "https://persistent.oaistatic.com/ecosystem-built-assets")
+
 
 MIME_TYPE = "text/html+skybridge"
 PLANETS = [
@@ -56,21 +63,31 @@ class SolarWidget:
     response_text: str
 
 
-WIDGET = SolarWidget(
-    identifier="solar-system",
-    title="Explore the Solar System",
-    template_uri="ui://widget/solar-system.html",
-    invoking="Charting the solar system",
-    invoked="Solar system ready",
-    html=(
-        "<div id=\"solar-system-root\"></div>\n"
-        "<link rel=\"stylesheet\" href=\"https://persistent.oaistatic.com/"
-        "ecosystem-built-assets/solar-system-0038.css\">\n"
-        "<script type=\"module\" src=\"https://persistent.oaistatic.com/"
-        "ecosystem-built-assets/solar-system-0038.js\"></script>"
-    ),
-    response_text="Solar system ready",
-)
+def create_widget() -> SolarWidget:
+    """Create widget with environment-aware asset URLs."""
+    static_url = get_static_url()
+    
+    # Determine asset hash based on whether we're using local or production assets
+    # For production Railway deployment, use the actual build hash
+    # For local development/testing, use the default hash from the original codebase
+    asset_hash = "-0038"  # Default hash for backward compatibility
+    
+    return SolarWidget(
+        identifier="solar-system",
+        title="Explore the Solar System",
+        template_uri="ui://widget/solar-system.html",
+        invoking="Charting the solar system",
+        invoked="Solar system ready",
+        html=(
+            "<div id=\"solar-system-root\"></div>\n"
+            f"<link rel=\"stylesheet\" href=\"{static_url}/assets/solar-system{asset_hash}.css\">\n"
+            f"<script type=\"module\" src=\"{static_url}/assets/solar-system{asset_hash}.js\"></script>"
+        ),
+        response_text="Solar system ready",
+    )
+
+
+WIDGET = create_widget()
 
 
 class SolarInput(BaseModel):

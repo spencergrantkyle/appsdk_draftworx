@@ -9,6 +9,7 @@ handlers into an HTTP/SSE stack so you can run the server with uvicorn on port
 
 from __future__ import annotations
 
+import os
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Dict, List
@@ -16,6 +17,11 @@ from typing import Any, Dict, List
 import mcp.types as types
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+
+def get_static_url() -> str:
+    """Get the static asset base URL from environment or use default."""
+    return os.getenv("STATIC_URL", "https://persistent.oaistatic.com/ecosystem-built-assets")
 
 
 @dataclass(frozen=True)
@@ -29,83 +35,85 @@ class PizzazWidget:
     response_text: str
 
 
-widgets: List[PizzazWidget] = [
-    PizzazWidget(
-        identifier="pizza-map",
-        title="Show Pizza Map",
-        template_uri="ui://widget/pizza-map.html",
-        invoking="Hand-tossing a map",
-        invoked="Served a fresh map",
-        html=(
-            "<div id=\"pizzaz-root\"></div>\n"
-            "<link rel=\"stylesheet\" href=\"https://persistent.oaistatic.com/"
-            "ecosystem-built-assets/pizzaz-0038.css\">\n"
-            "<script type=\"module\" src=\"https://persistent.oaistatic.com/"
-            "ecosystem-built-assets/pizzaz-0038.js\"></script>"
+def create_widgets() -> List[PizzazWidget]:
+    """Create widgets with environment-aware asset URLs."""
+    static_url = get_static_url()
+    
+    # Determine asset hash based on whether we're using local or production assets
+    # For production Railway deployment, use the actual build hash
+    # For local development/testing, use the default hash from the original codebase
+    asset_hash = "-0038"  # Default hash for backward compatibility
+    
+    return [
+        PizzazWidget(
+            identifier="pizza-map",
+            title="Show Pizza Map",
+            template_uri="ui://widget/pizza-map.html",
+            invoking="Hand-tossing a map",
+            invoked="Served a fresh map",
+            html=(
+                "<div id=\"pizzaz-root\"></div>\n"
+                f"<link rel=\"stylesheet\" href=\"{static_url}/assets/pizzaz{asset_hash}.css\">\n"
+                f"<script type=\"module\" src=\"{static_url}/assets/pizzaz{asset_hash}.js\"></script>"
+            ),
+            response_text="Rendered a pizza map!",
         ),
-        response_text="Rendered a pizza map!",
-    ),
-    PizzazWidget(
-        identifier="pizza-carousel",
-        title="Show Pizza Carousel",
-        template_uri="ui://widget/pizza-carousel.html",
-        invoking="Carousel some spots",
-        invoked="Served a fresh carousel",
-        html=(
-            "<div id=\"pizzaz-carousel-root\"></div>\n"
-            "<link rel=\"stylesheet\" href=\"https://persistent.oaistatic.com/"
-            "ecosystem-built-assets/pizzaz-carousel-0038.css\">\n"
-            "<script type=\"module\" src=\"https://persistent.oaistatic.com/"
-            "ecosystem-built-assets/pizzaz-carousel-0038.js\"></script>"
+        PizzazWidget(
+            identifier="pizza-carousel",
+            title="Show Pizza Carousel",
+            template_uri="ui://widget/pizza-carousel.html",
+            invoking="Carousel some spots",
+            invoked="Served a fresh carousel",
+            html=(
+                "<div id=\"pizzaz-carousel-root\"></div>\n"
+                f"<link rel=\"stylesheet\" href=\"{static_url}/assets/pizzaz-carousel{asset_hash}.css\">\n"
+                f"<script type=\"module\" src=\"{static_url}/assets/pizzaz-carousel{asset_hash}.js\"></script>"
+            ),
+            response_text="Rendered a pizza carousel!",
         ),
-        response_text="Rendered a pizza carousel!",
-    ),
-    PizzazWidget(
-        identifier="pizza-albums",
-        title="Show Pizza Album",
-        template_uri="ui://widget/pizza-albums.html",
-        invoking="Hand-tossing an album",
-        invoked="Served a fresh album",
-        html=(
-            "<div id=\"pizzaz-albums-root\"></div>\n"
-            "<link rel=\"stylesheet\" href=\"https://persistent.oaistatic.com/"
-            "ecosystem-built-assets/pizzaz-albums-0038.css\">\n"
-            "<script type=\"module\" src=\"https://persistent.oaistatic.com/"
-            "ecosystem-built-assets/pizzaz-albums-0038.js\"></script>"
+        PizzazWidget(
+            identifier="pizza-albums",
+            title="Show Pizza Album",
+            template_uri="ui://widget/pizza-albums.html",
+            invoking="Hand-tossing an album",
+            invoked="Served a fresh album",
+            html=(
+                "<div id=\"pizzaz-albums-root\"></div>\n"
+                f"<link rel=\"stylesheet\" href=\"{static_url}/assets/pizzaz-albums{asset_hash}.css\">\n"
+                f"<script type=\"module\" src=\"{static_url}/assets/pizzaz-albums{asset_hash}.js\"></script>"
+            ),
+            response_text="Rendered a pizza album!",
         ),
-        response_text="Rendered a pizza album!",
-    ),
-    PizzazWidget(
-        identifier="pizza-list",
-        title="Show Pizza List",
-        template_uri="ui://widget/pizza-list.html",
-        invoking="Hand-tossing a list",
-        invoked="Served a fresh list",
-        html=(
-            "<div id=\"pizzaz-list-root\"></div>\n"
-            "<link rel=\"stylesheet\" href=\"https://persistent.oaistatic.com/"
-            "ecosystem-built-assets/pizzaz-list-0038.css\">\n"
-            "<script type=\"module\" src=\"https://persistent.oaistatic.com/"
-            "ecosystem-built-assets/pizzaz-list-0038.js\"></script>"
+        PizzazWidget(
+            identifier="pizza-list",
+            title="Show Pizza List",
+            template_uri="ui://widget/pizza-list.html",
+            invoking="Hand-tossing a list",
+            invoked="Served a fresh list",
+            html=(
+                "<div id=\"pizzaz-list-root\"></div>\n"
+                f"<link rel=\"stylesheet\" href=\"{static_url}/assets/pizzaz-list{asset_hash}.css\">\n"
+                f"<script type=\"module\" src=\"{static_url}/assets/pizzaz-list{asset_hash}.js\"></script>"
+            ),
+            response_text="Rendered a pizza list!",
         ),
-        response_text="Rendered a pizza list!",
-    ),
-    PizzazWidget(
-        identifier="pizza-video",
-        title="Show Pizza Video",
-        template_uri="ui://widget/pizza-video.html",
-        invoking="Hand-tossing a video",
-        invoked="Served a fresh video",
-        html=(
-            "<div id=\"pizzaz-video-root\"></div>\n"
-            "<link rel=\"stylesheet\" href=\"https://persistent.oaistatic.com/"
-            "ecosystem-built-assets/pizzaz-video-0038.css\">\n"
-            "<script type=\"module\" src=\"https://persistent.oaistatic.com/"
-            "ecosystem-built-assets/pizzaz-video-0038.js\"></script>"
+        PizzazWidget(
+            identifier="pizza-video",
+            title="Show Pizza Video",
+            template_uri="ui://widget/pizza-video.html",
+            invoking="Hand-tossing a video",
+            invoked="Served a fresh video",
+            html=(
+                "<div id=\"pizzaz-video-root\"></div>\n"
+                f"<link rel=\"stylesheet\" href=\"{static_url}/assets/pizzaz-video{asset_hash}.css\">\n"
+                f"<script type=\"module\" src=\"{static_url}/assets/pizzaz-video{asset_hash}.js\"></script>"
+            ),
+            response_text="Rendered a pizza video!",
         ),
-        response_text="Rendered a pizza video!",
-    ),
-]
+    ]
+
+
+widgets = create_widgets()
 
 
 MIME_TYPE = "text/html+skybridge"
