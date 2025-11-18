@@ -35,3 +35,6 @@ __pycache__/
 .venv/
 venv/
 
+# Exclude dxcloud.server.client-api repository
+dxcloud.server.client-api/
+

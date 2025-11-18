@@ -28,9 +28,12 @@ pnpm run tsc
 
 ### MCP Servers
 
+All MCP servers are organized in the `servers/` directory by language. See `MCP_SERVERS.md` for detailed documentation.
+
 **Node.js Pizzaz Server:**
 ```bash
-cd pizzaz_server_node
+cd servers/node/pizzaz
+pnpm install
 pnpm start
 ```
 
@@ -38,17 +41,29 @@ pnpm start
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r pizzaz_server_python/requirements.txt
-uvicorn pizzaz_server_python.main:app --port 8000
+pip install -r servers/python/pizzaz/requirements.txt
+uvicorn servers.python.pizzaz.main:app --port 8000
 ```
 
 **Python Solar System Server:**
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r solar-system_server_python/requirements.txt
-uvicorn solar-system_server_python.main:app --port 8000
+pip install -r servers/python/solar-system/requirements.txt
+uvicorn servers.python.solar-system.main:app --port 8000
 ```
+
+**Python Draftworx Server:**
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r servers/python/draftworx/requirements.txt
+uvicorn servers.python.draftworx.main:app --port 8000
+```
+
+**Creating New MCP Servers:**
+- Python: Copy `servers/python/_template/` to `servers/python/your-server/`
+- Node.js: Copy `servers/node/_template/` to `servers/node/your-server/`
 
 ## Architecture
 
@@ -107,12 +122,19 @@ Each MCP tool must return:
 
 - `src/` - Widget source code (React components)
 - `assets/` - Built widget bundles (generated, versioned)
-- `pizzaz_server_node/` - Node.js MCP server implementation
-- `pizzaz_server_python/` - Python MCP server (mirrors Node functionality)
-- `solar-system_server_python/` - Python MCP server for 3D solar system
+- `servers/` - MCP server implementations organized by language
+  - `python/` - Python MCP servers
+    - `_template/` - Template for creating new Python MCP servers
+    - `pizzaz/` - Python Pizzaz demo server
+    - `solar-system/` - Python 3D solar system server
+    - `draftworx/` - Python Draftworx server
+  - `node/` - Node.js MCP servers
+    - `_template/` - Template for creating new Node.js MCP servers
+    - `pizzaz/` - Node.js Pizzaz demo server
 - `build-all.mts` - Build orchestrator for widget bundling
 - `vite.config.mts` - Dev server config with multi-entry support
 - `vite.host.config.mts` - Alternative Vite config for host development
+- `MCP_SERVERS.md` - Comprehensive MCP server documentation
 
 ### Widget to MCP Integration Flow
 

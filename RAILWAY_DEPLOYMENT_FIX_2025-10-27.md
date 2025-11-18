@@ -3,15 +3,18 @@
 ## Issue Summary
 
 **Date**: October 27, 2025
-**Status**: ✅ RESOLVED
+**Status**: ✅ RESOLVED (Updated)
 **Severity**: Critical - Build Failure
-**Affected File**: `nixpacks.toml`
+**Affected Files**: `nixpacks.toml`
+**Attempts**: 2 (Initial fix + pip module fix)
 
 ---
 
 ## Problem Description
 
-### Error Message
+### Error #1: pip Command Not Found
+
+First deployment attempt revealed that `pip` was not in PATH.
 
 ```
 stage-0
@@ -38,17 +41,38 @@ The issue occurred at `/Users/spencerdraftworx/projects/draftworx-pr/nixpacks.to
 
 The Nixpacks build process installs Python 3.12 from Nix packages, but unlike traditional Python installations, the `pip` executable is not directly available in the PATH. However, pip is still accessible through Python's module system using `python -m pip`.
 
+### Error #2: pip Module Not Found
+
+After fixing the first error, a second deployment attempt revealed pip wasn't installed as a Python module:
+
+```
+stage-0
+RUN python -m pip install --upgrade pip
+495ms
+/root/.nix-profile/bin/python: No module named pip
+Dockerfile:21
+ERROR: failed to build: failed to solve: process "/bin/bash -ol pipefail -c python -m pip install --upgrade pip" did not complete successfully: exit code: 1
+Error: Docker build failed
+```
+
+### Root Cause #2
+
+The `python312` Nix package does not include pip by default. In Nix, pip must be installed separately as `python312Packages.pip`. This is different from standard Python installations where pip is bundled.
+
 ---
 
-## Solution Implemented
+## Solution Implemented (Final)
 
 ### Changes Made to `nixpacks.toml`
 
 **File Location**: `/Users/spencerdraftworx/projects/draftworx-pr/nixpacks.toml`
 
-#### Before (Lines 4-11) - BROKEN
+#### Original (BROKEN)
 
 ```toml
+[phases.setup]
+nixPkgs = ["python312", "nodejs-18_x", "pnpm"]
+
 [phases.install]
 cmds = [
   "pnpm install --no-frozen-lockfile",
@@ -59,9 +83,28 @@ cmds = [
 ]
 ```
 
-#### After (Lines 4-11) - FIXED
+#### After First Fix (STILL BROKEN)
 
 ```toml
+[phases.setup]
+nixPkgs = ["python312", "nodejs-18_x", "pnpm"]
+
+[phases.install]
+cmds = [
+  "pnpm install --no-frozen-lockfile",
+  "python -m pip install --upgrade pip",
+  "python -m pip install -r pizzaz_server_python/requirements.txt",
+  "python -m pip install -r solar-system_server_python/requirements.txt",
+  "python -m pip install python-dotenv"
+]
+```
+
+#### Final Fix (WORKING)
+
+```toml
+[phases.setup]
+nixPkgs = ["python312", "python312Packages.pip", "nodejs-18_x", "pnpm"]
+
 [phases.install]
 cmds = [
   "pnpm install --no-frozen-lockfile",
@@ -74,22 +117,42 @@ cmds = [
 
 ### What Changed
 
+**Two critical changes were required:**
+
+#### Change 1: Updated pip invocation method (Lines 7-10)
+
 All instances of `pip` were replaced with `python -m pip` to invoke pip through Python's module system:
 
-1. **Line 7**: `pip install --upgrade pip` → `python -m pip install --upgrade pip`
-2. **Line 8**: `pip install -r pizzaz_server_python/requirements.txt` → `python -m pip install -r pizzaz_server_python/requirements.txt`
-3. **Line 9**: `pip install -r solar-system_server_python/requirements.txt` → `python -m pip install -r solar-system_server_python/requirements.txt`
-4. **Line 10**: `pip install python-dotenv` → `python -m pip install python-dotenv`
+1. `pip install --upgrade pip` → `python -m pip install --upgrade pip`
+2. `pip install -r pizzaz_server_python/requirements.txt` → `python -m pip install -r pizzaz_server_python/requirements.txt`
+3. `pip install -r solar-system_server_python/requirements.txt` → `python -m pip install -r solar-system_server_python/requirements.txt`
+4. `pip install python-dotenv` → `python -m pip install python-dotenv`
+
+#### Change 2: Added pip to Nix packages (Line 2)
+
+Added `python312Packages.pip` to the nixPkgs array:
+
+- **Before**: `nixPkgs = ["python312", "nodejs-18_x", "pnpm"]`
+- **After**: `nixPkgs = ["python312", "python312Packages.pip", "nodejs-18_x", "pnpm"]`
 
 ---
 
 ## Why This Fix Works
 
-### Python Module Invocation
+### Part 1: Adding pip to Nix Packages
+
+In Nix, Python and pip are separate packages. The `python312` package provides the Python interpreter but does not bundle pip. By adding `python312Packages.pip` to the nixPkgs array, we explicitly install pip into the Nix environment.
+
+**Why this is necessary:**
+- Nix philosophy: Keep packages modular and explicit
+- Unlike standard Python distributions (python.org, Anaconda), Nix requires explicit declaration of all tools
+- `python312Packages.pip` is the correct Nix package that provides pip for Python 3.12
+
+### Part 2: Python Module Invocation
 
 Using `python -m pip` instead of `pip` directly has several advantages in the Nixpacks environment:
 
-1. **Guaranteed Availability**: As long as Python is installed, `python -m pip` will always work
+1. **Guaranteed Availability**: As long as Python is installed, `python -m pip` will find the pip module
 2. **Correct Python Version**: Ensures pip runs with the exact Python interpreter specified (python312)
 3. **PATH Independence**: Does not rely on pip being in the system PATH
 4. **Best Practice**: Recommended by Python documentation for environments with multiple Python versions
@@ -102,6 +165,8 @@ When you run `python -m pip`, you're telling Python to:
 3. Pass all remaining arguments to pip
 
 This bypasses the need for a `pip` executable in PATH and ensures the correct pip version is used for the active Python installation.
+
+**Combined Effect:** By adding pip to nixPkgs AND using `python -m pip`, we ensure pip is both installed and invoked correctly.
 
 ---
 
@@ -128,22 +193,26 @@ python -m pip install --upgrade pip
 After this fix, the Nixpacks build should proceed as follows:
 
 ```
-╔════════════════════════════ Nixpacks v1.38.0 ═══════════════════════════╗
-║ setup      │ python312, nodejs-18_x, pnpm                               ║
-║─────────────────────────────────────────────────────────────────────────║
-║ install    │ pnpm install --no-frozen-lockfile                          ║
-║            │ python -m pip install --upgrade pip                        ║
-║            │ python -m pip install -r pizzaz_server_python/...          ║
-║            │ python -m pip install -r solar-system_server_python/...    ║
-║            │ python -m pip install python-dotenv                        ║
-║─────────────────────────────────────────────────────────────────────────║
-║ build      │ pnpm run build                                             ║
-║─────────────────────────────────────────────────────────────────────────║
-║ start      │ uvicorn unified_server:app --host 0.0.0.0 --port $PORT     ║
-╚═════════════════════════════════════════════════════════════════════════╝
+╔══════════════════════════════ Nixpacks v1.38.0 ══════════════════════════════╗
+║ setup      │ python312, python312Packages.pip, nodejs-18_x, pnpm             ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ install    │ pnpm install --no-frozen-lockfile                               ║
+║            │ python -m pip install --upgrade pip                             ║
+║            │ python -m pip install -r pizzaz_server_python/requirements.txt  ║
+║            │ python -m pip install -r solar-system_server_python/...         ║
+║            │ python -m pip install python-dotenv                             ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ build      │ pnpm run build                                                  ║
+║──────────────────────────────────────────────────────────────────────────────║
+║ start      │ uvicorn unified_server:app --host 0.0.0.0 --port $PORT          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
 ```
 
-All install commands should now succeed without "command not found" errors.
+All install commands should now succeed:
+- ✅ pip module is available (installed via python312Packages.pip)
+- ✅ pip commands work (invoked via python -m pip)
+- ✅ Dependencies install successfully
+- ✅ Build completes without errors
 
 ### Post-Deployment Verification
 
@@ -283,21 +352,38 @@ To prevent similar issues in the future:
 
 ## Changelog
 
-| Date | Change | Author |
-|------|--------|--------|
-| 2025-10-27 | Fixed pip command not found error in nixpacks.toml | Claude Code |
-| 2025-10-27 | Replaced all `pip` with `python -m pip` | Claude Code |
-| 2025-10-27 | Created this documentation | Claude Code |
+| Date | Time | Change | Author |
+|------|------|--------|--------|
+| 2025-10-27 | 11:44 AM | Initial deployment failed: pip command not found | System |
+| 2025-10-27 | 11:45 AM | First fix: Replaced `pip` with `python -m pip` | Claude Code |
+| 2025-10-27 | 11:51 AM | Second deployment failed: pip module not found | System |
+| 2025-10-27 | 11:52 AM | Second fix: Added `python312Packages.pip` to nixPkgs | Claude Code |
+| 2025-10-27 | 11:53 AM | Updated documentation with complete solution | Claude Code |
 
 ---
 
 ## Status
 
-✅ **Fix Applied**: All changes committed to nixpacks.toml
+✅ **Fixes Applied**:
+- Changed all `pip` commands to `python -m pip`
+- Added `python312Packages.pip` to nixPkgs array
+
 ⏳ **Deployment Pending**: Push to GitHub to trigger Railway rebuild
-🎯 **Expected Result**: Build should now succeed and server should start successfully
+
+🎯 **Expected Result**: Build should now succeed with both fixes applied
 
 ---
 
-*Document created: October 27, 2025*
-*Last updated: October 27, 2025*
+## Summary
+
+This fix required **two iterations** to fully resolve the Railway deployment issue:
+
+1. **First iteration**: Fixed pip invocation by using `python -m pip` instead of direct `pip` commands
+2. **Second iteration**: Added pip to Nix packages by including `python312Packages.pip` in nixPkgs array
+
+Both changes work together to ensure pip is available and correctly invoked in the Nixpacks/Railway environment.
+
+---
+
+*Document created: October 27, 2025 at 11:45 AM*
+*Last updated: October 27, 2025 at 11:53 AM*

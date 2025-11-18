@@ -1,0 +1,21 @@
+# Draftworx MCP Server Dependencies
+
+# MCP SDK - Model Context Protocol
+mcp>=1.0.0
+
+# FastMCP - High-level MCP server framework
+# Note: Install from the mcp package which includes FastMCP
+# Or if separate: fastmcp>=0.1.0
+
+# HTTP Client
+httpx>=0.27.0
+
+# Data validation and settings management
+pydantic>=2.7.0
+pydantic-settings>=2.2.0
+
+# Python standard library enhancements
+python-dotenv>=1.0.0
+
+# Optional: For better async support
+anyio>=4.3.0
